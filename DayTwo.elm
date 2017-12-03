@@ -48,6 +48,41 @@ maxFromRow row =
     Maybe.withDefault 0 (List.head (List.reverse (List.sort row.values)))
 
 
+findEvenlyDevidablePair : Row -> ( Float, Float )
+findEvenlyDevidablePair row =
+    List.foldl
+        (\element result ->
+            let
+                dividable =
+                    List.filterMap
+                        (\value ->
+                            if
+                                (Result.toMaybe (toInt (toString (toFloat element / value)))
+                                    /= Nothing
+                                    || Result.toMaybe (toInt (toString (value / toFloat element)))
+                                    /= Nothing
+                                )
+                                    && toFloat element
+                                    /= value
+                            then
+                                Just value
+                            else
+                                Nothing
+                        )
+                        (List.map toFloat row.values)
+
+                resultPair =
+                    if Tuple.second result > -1 then
+                        result
+                    else
+                        ( toFloat element, Maybe.withDefault -1 (List.head dividable) )
+            in
+                resultPair
+        )
+        ( -2, -2 )
+        row.values
+
+
 output : String
 output =
     let
@@ -63,7 +98,15 @@ output =
                 |> List.map (\row -> { row | max = maxFromRow row })
                 |> List.map (\row -> { row | min = minFromRow row })
                 |> List.map (\row -> { row | difference = row.max - row.min })
-                |> List.map .difference
+                |> List.map findEvenlyDevidablePair
+                |> List.map
+                    (\( a, b ) ->
+                        if a > b then
+                            ( a, b )
+                        else
+                            ( b, a )
+                    )
+                |> List.map (\( a, b ) -> a / b)
                 |> List.sum
     in
         toString
